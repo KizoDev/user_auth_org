@@ -8,16 +8,12 @@ const app = express();
 require('dotenv').config();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-const port = process.env.PORT 
+const port = 8000
 
-// Middleware
-//app.use(bodyParser.json());
 
 // Routes
 app.use("/auth", authRoute);
 app.use("/api", userRoutes);
-
-//routes.initialize(app);
 
 // Sync database and start server
 db.sequelize.sync().then(() => {
