@@ -2,6 +2,7 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const { User, Organization } = require('../models');
 const { validationResult } = require('express-validator');
+require('dotenv').config();
 
 exports.register = async (req, res) => {
   const errors = validationResult(req);

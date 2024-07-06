@@ -1,19 +1,22 @@
 const express = require('express');
 //const bodyParser = require('body-parser');
 const db = require('./models');
-const routes = require('./routes/authRoute');
+const authRoute = require('./routes/authRoute');
+const userRoutes = require('./routes/userRoutes');
 const app = express();
 
 require('dotenv').config();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-const port = 8000
+const port = process.env.PORT 
 
 // Middleware
 //app.use(bodyParser.json());
 
 // Routes
-app.use("/api", routes);
+app.use("/auth", authRoute);
+app.use("/api", userRoutes);
+
 //routes.initialize(app);
 
 // Sync database and start server
