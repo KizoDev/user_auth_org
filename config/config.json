@@ -1,6 +1,10 @@
 {
   "development": {
-    "use_env_variable": "DATABASE_URL",
+    "username": "postgres",
+    "password": "WwofQwdNYxjGxQOulZArhXKPcWyUajYA",
+    "database": "railway",
+    "host": "viaduct.proxy.rlwy.net",
+    "port": 41676,
     "dialect": "postgres",
     "dialectOptions": {
       "ssl": {
@@ -10,7 +14,11 @@
     }
   },
   "test": {
-    "use_env_variable": "DATABASE_URL",
+    "username": "postgres",
+    "password": "WwofQwdNYxjGxQOulZArhXKPcWyUajYA",
+    "database": "railway",
+    "host": "viaduct.proxy.rlwy.net",
+    "port": 41676,
     "dialect": "postgres",
     "dialectOptions": {
       "ssl": {
@@ -20,12 +28,16 @@
     }
   },
   "production": {
-    "use_env_variable": "DATABASE_URL",
+    "username": "postgres",
+    "password": "WwofQwdNYxjGxQOulZArhXKPcWyUajYA",
+    "database": "railway",
+    "host": "viaduct.proxy.rlwy.net",
+    "port": 41676,
     "dialect": "postgres",
     "dialectOptions": {
       "ssl": {
         "require": true,
-        "rejectUnauthorized": true
+        "rejectUnauthorized": false
       }
     }
   }
