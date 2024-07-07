@@ -1,17 +1,23 @@
 {
   "development": {
-    "username": "postgres",
-    "password": "Arizona39",
-    "database": "userauthorg",
-    "host": "127.0.0.1",
-    "dialect": "postgres"
+    "use_env_variable": "DATABASE_URL",
+    "dialect": "postgres",
+    "dialectOptions": {
+      "ssl": {
+        "require": true,
+        "rejectUnauthorized": false
+      }
+    }
   },
   "test": {
-    "username": "postgres",
-    "password": "Arizona39",
-    "database": "userauthorg",
-    "host": "127.0.0.1",
-    "dialect": "postgres"
+    "use_env_variable": "DATABASE_URL",
+    "dialect": "postgres",
+    "dialectOptions": {
+      "ssl": {
+        "require": true,
+        "rejectUnauthorized": false
+      }
+    }
   },
   "production": {
     "use_env_variable": "DATABASE_URL",
@@ -19,7 +25,7 @@
     "dialectOptions": {
       "ssl": {
         "require": true,
-        "rejectUnauthorized": false
+        "rejectUnauthorized": true
       }
     }
   }
