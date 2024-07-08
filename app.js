@@ -9,7 +9,7 @@ require('dotenv').config();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-const port = process.env.PORT || 41676
+const port = process.env.PORT || 3000
 
 app.use(cors());
 // Routes
