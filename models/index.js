@@ -9,9 +9,23 @@ require('dotenv').config();
 
 let sequelize;
 if (config.use_env_variable) {
-  sequelize = new Sequelize(process.env.DATABASE_URL, config);
+  sequelize = new Sequelize(process.env.DATABASE_URL, {
+    ...config,
+    dialectOptions: {
+      ssl: {
+        rejectUnauthorized: false, // Ignore SSL validation (not recommended for production)
+      },
+    },
+  });
 } else {
-  sequelize = new Sequelize(config.database, config.username, config.password, config);
+  sequelize = new Sequelize(config.database, config.username, config.password, {
+    ...config,
+    dialectOptions: {
+      ssl: {
+        rejectUnauthorized: false, // Ignore SSL validation (not recommended for production)
+      },
+    },
+  });
 }
 
 fs.readdirSync(__dirname)
