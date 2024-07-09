@@ -1,5 +1,6 @@
-const  User = require('../models/user')
-const Organization = require('../models/organization')
+const { model } = require('mongoose');
+const { User, Organization } = require('../models');
+
 const { validationResult } = require('express-validator');
 
 exports.createOrganization = async (req, res) => {
@@ -44,47 +45,56 @@ exports.createOrganization = async (req, res) => {
 };
 
 exports.getAllUserOrganizations = async (req, res) => {
-  const { userId } = req.user; // Assuming req.user is set by authentication middleware
+  const user  = req.user; 
 
   try {
-    const user = await User.findOne({
-      where: { userId: userId },
-      include: {
-        model: Organization,
-        through: {
-          attributes: [],
-        }
+    const organizations = await Organization.findAll({ 
+      include:{
+        model:User,
+        where: { userId: user.userId }
       }
+      
     });
-
-    if (!user) {
+   // console.log(organizations);
+     if (!organizations) {
       return res.status(404).json({
-        status: 'error',
-        message: 'User not found'
-      });
-    }
+         status: 'error',
+         message: 'User not found'
+     });
+     }
 
-    res.status(200).json({
-      status: 'success',
-      message: 'Organizations retrieved successfully',
-      data: {
-        organizations: user.Organizations.map(org => ({
-          orgId: org.orgId,
-          name: org.name,
-          description: org.description
-        }))
-      }
+     res.status(200).json({
+       status: 'success',
+    message: 'Organizations retrieved successfully',    
+    data:organizations.map(org => ({
+      orgId: org.orgId,
+      name: org.name,
+      description: org.description
+    }))
     });
+    
   } catch (error) {
+    //console.log(error);
     res.status(500).json({ status: 'error', message: 'Internal server error' });
+
   }
 };
 
 exports.getOrganizationById = async (req, res) => {
   const {id:orgId}  = req.params;
+  const user  = req.user; 
+
   try {
     const organization = await Organization.findOne({
-    where: { orgId: orgId }})
+      where: { orgId: orgId },
+      include: {
+        model: User,
+        where: { userId: user.userId },
+        through: { attributes: [] }
+      }
+    });
+   
+    console.log(organization);
     if (!organization) {
       return res.status(404).json({
         status: 'error',
@@ -92,15 +102,15 @@ exports.getOrganizationById = async (req, res) => {
     }
     res.status(200).json({
       status: 'success',
-      message: 'Organization found',
-      data: {
-        orgId: organization.orgId,
-        name: organization.name,
-        description: organization.description
-      }
+   message: 'Organizations retrieved successfully',    
+   data:organization.map(org => ({
+     orgId: org.orgId,
+     name: org.name,
+     description: org.description
+   }))
     });
   } catch (error) {
-    res.status(500).json({ status: 'error', message: 'Interjjnal server error' });
+    res.status(500).json({ status: 'error', message: 'Internal server error' });
   }
 };
 
