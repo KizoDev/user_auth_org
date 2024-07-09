@@ -1,5 +1,5 @@
 const jwt = require('jsonwebtoken');
-const { User } = require('../models');
+const { User } = require('../models'); // Ensure you are using the correct import path for your User model
 require('dotenv').config();
 
 const authMiddleware = async (req, res, next) => {
@@ -12,7 +12,7 @@ const authMiddleware = async (req, res, next) => {
 
     const token = authHeader.replace('Bearer ', '');
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const user = await User.findByPk(decoded.userId);
+    const user = await User.findOne(decoded.id);
 
     if (!user) {
       return res.status(401).json({ status: 'error', message: 'Authentication failed' });
@@ -21,9 +21,9 @@ const authMiddleware = async (req, res, next) => {
     req.user = user;
     next();
   } catch (error) {
-    console.error(error);
+    console.error('Authorization error:', error);
     res.status(401).json({ status: 'error', message: 'Invalid token' });
   }
-};
+}
 
 module.exports = authMiddleware;

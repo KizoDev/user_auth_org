@@ -1,4 +1,5 @@
-const { User, Organization } = require('../models');
+const  User = require('../models/user')
+const Organization = require('../models/organization')
 const { validationResult } = require('express-validator');
 
 exports.createOrganization = async (req, res) => {
@@ -7,7 +8,7 @@ exports.createOrganization = async (req, res) => {
     return res.status(422).json({ errors: errors.array() });
   }
 
-  const { userId } = req.user; // Assuming req.user is set by authentication middleware
+  const { userId } = req.user;
   const { name, description } = req.body;
 
   try {
@@ -46,11 +47,12 @@ exports.getAllUserOrganizations = async (req, res) => {
   const { userId } = req.user; // Assuming req.user is set by authentication middleware
 
   try {
-    const user = await User.findByPk(userId, {
+    const user = await User.findOne({
+      where: { userId: userId },
       include: {
         model: Organization,
         through: {
-          attributes: []
+          attributes: [],
         }
       }
     });
@@ -79,18 +81,15 @@ exports.getAllUserOrganizations = async (req, res) => {
 };
 
 exports.getOrganizationById = async (req, res) => {
-  const { orgId } = req.params;
-
+  const {id:orgId}  = req.params;
   try {
-    const organization = await Organization.findByPk(orgId);
-
+    const organization = await Organization.findOne({
+    where: { orgId: orgId }})
     if (!organization) {
       return res.status(404).json({
         status: 'error',
-        message: 'Organization not found'
       });
     }
-
     res.status(200).json({
       status: 'success',
       message: 'Organization found',
@@ -101,7 +100,7 @@ exports.getOrganizationById = async (req, res) => {
       }
     });
   } catch (error) {
-    res.status(500).json({ status: 'error', message: 'Internal server error' });
+    res.status(500).json({ status: 'error', message: 'Interjjnal server error' });
   }
 };
 
