@@ -13,7 +13,9 @@ exports.createOrganization = async (req, res) => {
   const { name, description } = req.body;
 
   try {
-    const user = await User.findByPk(userId);
+    const user = await User.findOne({
+     where:{ userId: userId}
+    });
 
     if (!user) {
       return res.status(404).json({
@@ -40,6 +42,7 @@ exports.createOrganization = async (req, res) => {
       }
     });
   } catch (error) {
+    console.log(error);
     res.status(500).json({ status: 'error', message: 'Internal server error' });
   }
 };
@@ -94,7 +97,7 @@ exports.getOrganizationById = async (req, res) => {
       }
     });
    
-    console.log(organization);
+    //console.log(organization);
     if (!organization) {
       return res.status(404).json({
         status: 'error',
@@ -103,13 +106,14 @@ exports.getOrganizationById = async (req, res) => {
     res.status(200).json({
       status: 'success',
    message: 'Organizations retrieved successfully',    
-   data:organization.map(org => ({
-     orgId: org.orgId,
-     name: org.name,
-     description: org.description
-   }))
+   data:{ 
+    orgId:organization.orgId,
+     name:organization.name,
+     description:organization.description
+   }
     });
   } catch (error) {
+    //console.log(error);
     res.status(500).json({ status: 'error', message: 'Internal server error' });
   }
 };
@@ -119,23 +123,26 @@ exports.addUserToOrganization = async (req, res) => {
   const { userId } = req.body;
 
   try {
-    const organization = await Organization.findByPk(orgId);
-    const user = await User.findByPk(userId);
-
-    if (!organization || !user) {
-      return res.status(404).json({
-        status: 'error',
-        message: 'User or Organization not found'
-      });
+    const user = await User.findOne({ where: { userId } });
+    if (!user) {
+      throw new Error('User not found');
     }
 
-    await organization.addUser(user);
+    // Find the organization by orgId
+    const organization = await Organization.findOne({ where: { orgId } });
+    if (!organization) {
+      throw new Error('Organization not found');
+    }
+
+    // Add the user to the organization
+    await user.addOrganization(organization);
 
     res.status(200).json({
       status: 'success',
       message: 'User added to organization successfully'
     });
   } catch (error) {
+    console.log(error);
     res.status(500).json({ status: 'error', message: 'Internal server error' });
   }
 };

@@ -6,7 +6,7 @@ const router = express.Router();
 
 router.get('/organisations',authMiddleware, orgController.getAllUserOrganizations);
 router.get('/organisations/:id',authMiddleware, orgController.getOrganizationById);
-router.post('/', authMiddleware, orgController.createOrganization);
-router.post('/:orgId/users', authMiddleware, orgController.addUserToOrganization);
+router.post('/organisations', authMiddleware, orgController.createOrganization);
+router.post('/organisations/:orgId/users', authMiddleware, orgController.addUserToOrganization);
 
 module.exports = router;
