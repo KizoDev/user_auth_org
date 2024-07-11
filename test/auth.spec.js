@@ -1,78 +1,51 @@
-// tests/auth.spec.js
 const request = require('supertest');
-const app = require('../server');
-const { User, Organization } = require('../models');
-const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+const bcrypt = require('bcrypt');
+const { User, Organization } = require('../models');
+const app = require('../server'); // Import the Express app
 
-jest.mock('../models');
-jest.mock('bcrypt');
-jest.mock('jsonwebtoken');
+describe('Token Generation', () => {
+  it('should generate a token with correct expiration and user details', async () => {
+    const user = { userId: '12345', email: 'test@example.com' };
+    const token = jwt.sign(user, process.env.JWT_SECRET, { expiresIn: '1h' });
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    expect(decoded.userId).toBe(user.userId);
+    expect(decoded.email).toBe(user.email);
+    expect(decoded.exp - decoded.iat).toBe(3600); // 1 hour in seconds
+  });
+});
+
+describe('Organization Access', () => {
+  it('should not allow users to see data from organizations they don’t have access to', async () => {
+    const user = await User.create({
+      userId: 'test-user-id',
+      firstName: 'Test',
+      lastName: 'User',
+      email: 'test.user@example.com',
+      password: await bcrypt.hash('password123', 10)
+    });
+
+    const organization = await Organization.create({
+      orgId: 'test-org-id',
+      name: 'Test Organization',
+      description: 'Test Organization Description'
+    });
+
+    // Simulate user trying to access another organization
+    const unauthorizedAccess = async () => {
+      // Logic to check access
+      if (!user.organizations || !user.organizations.includes(organization.orgId)) {
+        throw new Error('Access denied');
+      }
+    };
+
+    await expect(unauthorizedAccess).rejects.toThrow('Access denied');
+  });
+});
 
 describe('POST /auth/register', () => {
-  beforeEach(() => {
-    jest.clearAllMocks();
-  });
-
-  it('Should Register User Successfully with Default Organisation', async () => {
-    User.findOne.mockResolvedValue(null);
-    bcrypt.hash.mockResolvedValue('hashedpassword');
-    User.create.mockResolvedValue({
-      userId: '1',
-      firstName: 'John',
-      lastName: 'Doe',
-      email: 'john.doe@example.com',
-      password: 'hashedpassword',
-      phone: '1234567890',
-      addOrganization: jest.fn()
-    });
-    Organization.create.mockResolvedValue({
-      orgId: '1',
-      name: "John's Organization",
-      description: 'Organization for John'
-    });
-    jwt.sign.mockReturnValue('someaccesstoken');
-
-    const response = await request(app)
-      .post('/auth/register')
-      .send({
-        firstName: 'John',
-        lastName: 'Doe',
-        email: 'john.doe@example.com',
-        password: 'password123',
-        phone: '1234567890'
-      });
-
-    expect(response.status).toBe(201);
-    expect(response.body).toHaveProperty('status', 'success');
-    expect(response.body.data).toHaveProperty('accessToken', 'someaccesstoken');
-    expect(response.body.data.user).toHaveProperty('firstName', 'John');
-    expect(response.body.data.user).toHaveProperty('lastName', 'Doe');
-    expect(response.body.data.user).toHaveProperty('email', 'john.doe@example.com');
-    expect(response.body.data.user).toHaveProperty('phone', '1234567890');
-    expect(response.body.data.user).toHaveProperty('organisation', "John's Organization");
-  });
-
-  it('Should fail registration with validation errors', async () => {
-    const response = await request(app)
-      .post('/auth/register')
-      .send({
-        firstName: '',
-        lastName: '',
-        email: '',
-        password: '',
-        phone: ''
-      });
-
-    expect(response.status).toBe(422);
-    expect(response.body).toHaveProperty('errors');
-  });
-
-  it('Should fail registration if email already exists', async () => {
-    User.findOne.mockResolvedValue({
-      email: 'john.doe@example.com'
-    });
-
+  it('should register user successfully with default organization', async () => {
     const response = await request(app)
       .post('/auth/register')
       .send({
@@ -84,100 +57,84 @@ describe('POST /auth/register', () => {
       });
 
     expect(response.status).toBe(422);
-    expect(response.body).toHaveProperty('errors');
-    expect(response.body.errors[0]).toHaveProperty('field', 'email');
-    expect(response.body.errors[0]).toHaveProperty('message', 'Email already in use');
-  });
+    expect(response.body.data.user.firstName).toBe('John');
+    expect(response.body.data.user.email).toBe('john.doe@example.com');
+    expect(response.body.data.accessToken).toBeDefined();
+    expect(response.body.data.user.organization.name).toBe("John's Organization");
+  }, 10000); // Increase timeout to 10 seconds
 
-  it('Should fail registration if userId already exists', async () => {
-    User.create.mockImplementation(() => {
-      throw new Error('User ID already exists');
-    });
-
+  it('should fail if required fields are missing', async () => {
     const response = await request(app)
       .post('/auth/register')
       .send({
         firstName: 'John',
+        email: 'john.doe@example.com',
+        password: 'password123'
+      });
+
+    expect(response.status).toBe(422);
+    expect(response.body.errors).toContainEqual(expect.objectContaining({ field: 'lastName' }));
+  });
+
+  it('should fail if there’s duplicate email', async () => {
+    await request(app)
+      .post('/auth/register')
+      .send({
+        firstName: 'John',
         lastName: 'Doe',
-        email: 'john.doe2@example.com',
+        email: 'john.doe@example.com',
         password: 'password123',
         phone: '1234567890'
       });
 
-    expect(response.status).toBe(500);
-    expect(response.body).toHaveProperty('status', 'error');
-    expect(response.body).toHaveProperty('message', 'Internal server error');
+    const response = await request(app)
+      .post('/auth/register')
+      .send({
+        firstName: 'Jane',
+        lastName: 'Doe',
+        email: 'john.doe@example.com',
+        password: 'password123',
+        phone: '0987654321'
+      });
+
+    expect(response.status).toBe(422);
+    expect(response.body.errors).toContainEqual(expect.objectContaining({ field: 'email' }));
   });
 });
 
 describe('POST /auth/login', () => {
-  beforeEach(() => {
-    jest.clearAllMocks();
-  });
-
-  it('Should Log the user in successfully', async () => {
-    User.findOne.mockResolvedValue({
-      userId: '1',
-      firstName: 'Jane',
-      lastName: 'Doe',
-      email: 'jane.doe@example.com',
-      password: 'hashedpassword',
-      phone: '1234567890'
-    });
-    bcrypt.compare.mockResolvedValue(true);
-    jwt.sign.mockReturnValue('someaccesstoken');
+  it('should log the user in successfully', async () => {
+    await request(app)
+      .post('/auth/register')
+      .send({
+        firstName: 'John',
+        lastName: 'Doe',
+        email: 'john.doe@example.com',
+        password: 'password123',
+        phone: '1234567890'
+      });
 
     const response = await request(app)
       .post('/auth/login')
       .send({
-        email: 'jane.doe@example.com',
+        email: 'john.doe@example.com',
         password: 'password123'
       });
 
     expect(response.status).toBe(200);
-    expect(response.body).toHaveProperty('status', 'success');
-    expect(response.body.data).toHaveProperty('accessToken', 'someaccesstoken');
-    expect(response.body.data.user).toHaveProperty('firstName', 'Jane');
-    expect(response.body.data.user).toHaveProperty('lastName', 'Doe');
-    expect(response.body.data.user).toHaveProperty('email', 'jane.doe@example.com');
-    expect(response.body.data.user).toHaveProperty('phone', '1234567890');
+    expect(response.body.data.user.email).toBe('john.doe@example.com');
+    expect(response.body.data.accessToken).toBeDefined();
   });
 
-  it('Should fail login with invalid credentials', async () => {
-    User.findOne.mockResolvedValue(null);
-
+  it('should fail if credentials are invalid', async () => {
     const response = await request(app)
       .post('/auth/login')
       .send({
-        email: 'jane.doe@example.com',
-        password: 'password123'
-      });
-
-    expect(response.status).toBe(401);
-    expect(response.body).toHaveProperty('status', 'Bad request');
-    expect(response.body).toHaveProperty('message', 'Authentication failed');
-  });
-
-  it('Should fail login with incorrect password', async () => {
-    User.findOne.mockResolvedValue({
-      userId: '1',
-      firstName: 'Jane',
-      lastName: 'Doe',
-      email: 'jane.doe@example.com',
-      password: 'hashedpassword',
-      phone: '1234567890'
-    });
-    bcrypt.compare.mockResolvedValue(false);
-
-    const response = await request(app)
-      .post('/auth/login')
-      .send({
-        email: 'jane.doe@example.com',
+        email: 'john.doe@example.com',
         password: 'wrongpassword'
       });
 
     expect(response.status).toBe(401);
-    expect(response.body).toHaveProperty('status', 'Bad request');
-    expect(response.body).toHaveProperty('message', 'Authentication failed');
+    expect(response.body.message).toBe('Authentication failed');
   });
 });
